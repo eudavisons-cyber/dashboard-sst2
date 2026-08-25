@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Central SST — Gestão de Saúde e Segurança do Trabalho</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+  html, body { margin: 0; padding: 0; background: #14181C; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+
+/* ------------------------------------------------------------------ */
+/*  Storage (persistência local no navegador via localStorage)          */
+/* ------------------------------------------------------------------ */
+const storage = {
+  async get(key) {
+    const v = window.localStorage.getItem(key);
+    if (v === null) throw new Error("not found");
+    return { key, value: v };
+  },
+  async set(key, value) {
+    window.localStorage.setItem(key, value);
+    return { key, value };
+  },
+  async delete(key) {
+    window.localStorage.removeItem(key);
+    return { key, deleted: true };
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Ícones (SVG inline, sem dependência externa)                        */
+/* ------------------------------------------------------------------ */
+function IconBase({ size = 18, style, className, color, children }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || "currentColor"}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
+      {children}
+    </svg>
+  );
+}
+function Menu(props) { return <IconBase {...props}><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></IconBase>; }
+function X(props) { return <IconBase {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconBase>; }
+function Plus(props) { return <IconBase {...props}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></IconBase>; }
+function Search(props) { return <IconBase {...props}><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></IconBase>; }
+function Pencil(props) { return <IconBase {...props}><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></IconBase>; }
+function Trash2(props) { return <IconBase {...props}><polyline points="3 6 5 6 21 6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></IconBase>; }
+function Upload(props) { return <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></IconBase>; }
+function Download(props) { return <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></IconBase>; }
+function Paperclip(props) { return <IconBase {...props}><path d="M21.44 11.05 12.25 20.24a5.5 5.5 0 0 1-7.78-7.78l9.2-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48" /></IconBase>; }
+function FileText(props) { return <IconBase {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></IconBase>; }
+function ClipboardCheck(props) { return <IconBase {...props}><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="m9 14 2 2 4-4" /></IconBase>; }
+function Users(props) { return <IconBase {...props}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></IconBase>; }
+function HardHat(props) { return <IconBase {...props}><path d="M2 18h20" /><path d="M4 18v-2a8 8 0 0 1 16 0v2" /><path d="M12 4v4" /><path d="M6 18v-4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" /></IconBase>; }
+function GraduationCap(props) { return <IconBase {...props}><path d="M22 10 12 5 2 10l10 5 10-5Z" /><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" /></IconBase>; }
+function ShieldAlert(props) { return <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><line x1="12" y1="8" x2="12" y2="13" /><line x1="12" y1="16" x2="12.01" y2="16" /></IconBase>; }
+function Stethoscope(props) { return <IconBase {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v3a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" /><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" /><circle cx="20" cy="10" r="2" /></IconBase>; }
+function LayoutDashboard(props) { return <IconBase {...props}><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></IconBase>; }
+
+
+/* ------------------------------------------------------------------ */
+/*  Tokens                                                             */
+/* ------------------------------------------------------------------ */
+const T = {
+  bg: "#14181C", panel: "#1E252B", panel2: "#262F37", border: "#333E47",
+  text: "#E7ECEF", muted: "#8FA0AC", accent: "#F5821F", accent2: "#FFC72C",
+  ok: "#3FA34D", warn: "#FFC72C", danger: "#E1432B",
+};
+
+/* ------------------------------------------------------------------ */
+/*  Storage helpers                                                    */
+/* ------------------------------------------------------------------ */
+async function loadKey(key, fallback = []) {
+  try {
+    const r = await storage.get(key, false);
+    return r ? JSON.parse(r.value) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+async function saveKey(key, data) {
+  try {
+    await storage.set(key, JSON.stringify(data), false);
+    return true;
+  } catch (e) {
+    console.error("storage set failed", key, e);
+    return false;
+  }
+}
+async function saveFile(key, payload) {
+  try {
+    await storage.set(key, JSON.stringify(payload), false);
+    return true;
+  } catch (e) {
+    console.error("file save failed", e);
+    return false;
+  }
+}
+async function loadFile(key) {
+  try {
+    const r = await storage.get(key, false);
+    return r ? JSON.parse(r.value) : null;
+  } catch (e) {
+    return null;
+  }
+}
+async function deleteFile(key) {
+  try { await storage.delete(key, false); } catch (e) {}
+}
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function fmtDate(d) {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return day ? `${day}/${m}/${y}` : d;
+}
+function daysUntil(d) {
+  if (!d) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const target = new Date(d + "T00:00:00");
+  return Math.round((target - today) / 86400000);
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Small UI atoms                                                     */
+/* ------------------------------------------------------------------ */
+function Badge({ color, children }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-semibold tracking-wide uppercase"
+      style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function statusFromDays(days, warnAt = 30) {
+  if (days === null) return { label: "Sem data", color: T.muted };
+  if (days < 0) return { label: `Vencido há ${Math.abs(days)}d`, color: T.danger };
+  if (days <= warnAt) return { label: `Vence em ${days}d`, color: T.warn };
+  return { label: `Válido (${days}d)`, color: T.ok };
+}
+
+function IconBtn({ onClick, title, children, danger }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="p-1.5 rounded transition-colors"
+      style={{ color: danger ? T.danger : T.muted }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = T.panel2)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PrimaryBtn({ onClick, children, small }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded font-semibold transition-transform active:scale-95 ${
+        small ? "px-3 py-1.5 text-xs" : "px-4 py-2.5 text-sm"
+      }`}
+      style={{ background: T.accent, color: "#1A1300" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Field({ label, children, required }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span style={{ color: T.muted }} className="text-xs font-semibold uppercase tracking-wide">
+        {label}{required && <span style={{ color: T.accent }}> *</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputCls =
+  "w-full px-3 py-2 rounded outline-none text-sm transition-colors";
+const inputStyle = { background: T.bg, border: `1px solid ${T.border}`, color: T.text };
+
+/* ------------------------------------------------------------------ */
+/*  Modal                                                               */
+/* ------------------------------------------------------------------ */
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "#000000aa" }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-lg max-h-[90vh] overflow-y-auto`}
+        style={{ background: T.panel, border: `1px solid ${T.border}` }}
+      >
+        <div
+          className="flex items-center justify-between px-5 py-4 sticky top-0"
+          style={{ background: T.panel, borderBottom: `1px solid ${T.border}` }}
+        >
+          <h3 className="font-bold text-base" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.03em" }}>
+            {title.toUpperCase()}
+          </h3>
+          <IconBtn onClick={onClose} title="Fechar"><X size={18} /></IconBtn>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Generic Form (config driven)                                       */
+/* ------------------------------------------------------------------ */
+function GenericForm({ fields, initial, onSubmit, onCancel, employees, extraOptions }) {
+  const [form, setForm] = React.useState(initial || {});
+  const [file, setFile] = React.useState(null);
+  const [fileMeta, setFileMeta] = React.useState(initial?._fileMeta || null);
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleFile = async (e, key) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (f.size > 4.5 * 1024 * 1024) {
+      alert("Arquivo muito grande. Limite de 4,5MB por arquivo.");
+      return;
+    }
+    const base64 = await fileToBase64(f);
+    setFile({ key, base64, name: f.name, type: f.type });
+    setFileMeta({ name: f.name });
+  };
+
+  const submit = (e) => {
+    e.preventDefault();
+    for (const fld of fields) {
+      if (fld.required && fld.type !== "file" && !form[fld.key]) {
+        alert(`Preencha o campo "${fld.label}".`);
+        return;
+      }
+    }
+    onSubmit(form, file);
+  };
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {fields.map((fld) => {
+          if (fld.type === "select") {
+            return (
+              <Field key={fld.key} label={fld.label} required={fld.required}>
+                <select
+                  className={inputCls} style={inputStyle}
+                  value={form[fld.key] || ""}
+                  onChange={(e) => set(fld.key, e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {fld.options.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </Field>
+            );
+          }
+          if (fld.type === "employee") {
+            return (
+              <Field key={fld.key} label={fld.label} required={fld.required}>
+                <select
+                  className={inputCls} style={inputStyle}
+                  value={form[fld.key] || ""}
+                  onChange={(e) => set(fld.key, e.target.value)}
+                >
+                  <option value="">Selecione o funcionário...</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.nome} {emp.matricula ? `(${emp.matricula})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            );
+          }
+          if (fld.type === "textarea") {
+            return (
+              <Field key={fld.key} label={fld.label} required={fld.required}>
+                <textarea
+                  className={inputCls} style={{ ...inputStyle, minHeight: 80 }}
+                  value={form[fld.key] || ""}
+                  onChange={(e) => set(fld.key, e.target.value)}
+                />
+              </Field>
+            );
+          }
+          if (fld.type === "file") {
+            return (
+              <Field key={fld.key} label={fld.label} required={fld.required}>
+                <div className="flex items-center gap-2">
+                  <label
+                    className="flex items-center gap-2 px-3 py-2 rounded text-sm cursor-pointer flex-1"
+                    style={{ ...inputStyle, color: T.muted }}
+                  >
+                    <Upload size={14} />
+                    {fileMeta?.name || "Escolher arquivo (PDF/imagem)"}
+                    <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleFile(e, fld.key)} />
+                  </label>
+                </div>
+              </Field>
+            );
+          }
+          return (
+            <Field key={fld.key} label={fld.label} required={fld.required}>
+              <input
+                type={fld.type || "text"}
+                className={inputCls} style={inputStyle}
+                value={form[fld.key] || ""}
+                onChange={(e) => set(fld.key, e.target.value)}
+              />
+            </Field>
+          );
+        })}
+      </div>
+      <div className="flex justify-end gap-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+        <button type="button" onClick={onCancel} className="px-4 py-2 rounded text-sm font-semibold" style={{ color: T.muted }}>
+          Cancelar
+        </button>
+        <PrimaryBtn onClick={submit}>Salvar</PrimaryBtn>
+      </div>
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Generic CRUD Module                                                 */
+/* ------------------------------------------------------------------ */
+function CrudModule({
+  storageKey, title, subtitle, fields, columns, employees,
+  extraRow, filterFn, emptyIcon: EmptyIcon,
+}) {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
+  const [query, setQuery] = React.useState("");
+
+  React.useEffect(() => {
+    (async () => {
+      const data = await loadKey(storageKey);
+      setItems(data);
+      setLoading(false);
+    })();
+  }, [storageKey]);
+
+  const persist = async (next) => {
+    setItems(next);
+    await saveKey(storageKey, next);
+  };
+
+  const hasFileField = fields.some((f) => f.type === "file");
+  const fileFieldKey = fields.find((f) => f.type === "file")?.key;
+
+  const handleSubmit = async (form, file) => {
+    const id = editing?.id || uid();
+    const item = { ...form, id, criadoEm: editing?.criadoEm || new Date().toISOString() };
+    if (file) {
+      await saveFile(`${storageKey}:file:${id}`, { base64: file.base64, name: file.name, type: file.type });
+      item[fileFieldKey] = { name: file.name };
+    } else if (editing && fileFieldKey) {
+      item[fileFieldKey] = editing[fileFieldKey] || null;
+    }
+    let next;
+    if (editing) {
+      next = items.map((it) => (it.id === editing.id ? item : it));
+    } else {
+      next = [...items, item];
+    }
+    await persist(next);
+    setModalOpen(false);
+    setEditing(null);
+  };
+
+  const handleDelete = async (item) => {
+    if (!confirm("Confirma a exclusão deste registro?")) return;
+    if (hasFileField && item[fileFieldKey]) await deleteFile(`${storageKey}:file:${item.id}`);
+    await persist(items.filter((it) => it.id !== item.id));
+  };
+
+  const handleViewFile = async (item) => {
+    const f = await loadFile(`${storageKey}:file:${item.id}`);
+    if (!f) { alert("Arquivo não encontrado."); return; }
+    const a = document.createElement("a");
+    a.href = f.base64;
+    a.download = f.name || "arquivo";
+    a.click();
+  };
+
+  const filtered = React.useMemo(() => {
+    let base = items;
+    if (filterFn) base = base.filter((i) => filterFn(i, employees));
+    if (!query.trim()) return base;
+    const q = query.toLowerCase();
+    return base.filter((it) => JSON.stringify(it).toLowerCase().includes(q));
+  }, [items, query, filterFn, employees]);
+
+  const empName = (id) => employees.find((e) => e.id === id)?.nome || "—";
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.02em" }}>
+            {title.toUpperCase()}
+          </h2>
+          {subtitle && <p className="text-sm mt-0.5" style={{ color: T.muted }}>{subtitle}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.muted }} />
+            <input
+              placeholder="Buscar..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-8 pr-3 py-2 rounded text-sm"
+              style={inputStyle}
+            />
+          </div>
+          <PrimaryBtn onClick={() => { setEditing(null); setModalOpen(true); }}>
+            <Plus size={16} /> Novo
+          </PrimaryBtn>
+        </div>
+      </div>
+
+      <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: T.panel2 }}>
+                {columns.map((c) => (
+                  <th key={c.key} className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide" style={{ color: T.muted }}>
+                    {c.label}
+                  </th>
+                ))}
+                {hasFileField && <th className="text-left px-4 py-3 text-xs uppercase" style={{ color: T.muted }}>Arquivo</th>}
+                <th className="w-20"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={columns.length + 2} className="text-center py-10" style={{ color: T.muted }}>Carregando...</td></tr>
+              )}
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={columns.length + 2} className="text-center py-14" style={{ color: T.muted }}>
+                    <div className="flex flex-col items-center gap-2">
+                      {EmptyIcon && <EmptyIcon size={28} style={{ color: T.border }} />}
+                      Nenhum registro encontrado.
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {filtered.map((item, idx) => (
+                <tr key={item.id} style={{ background: idx % 2 ? "transparent" : "#ffffff05", borderTop: `1px solid ${T.border}` }}>
+                  {columns.map((c) => (
+                    <td key={c.key} className="px-4 py-3" style={{ color: T.text }}>
+                      {c.render ? c.render(item, empName) : (item[c.key] ?? "—")}
+                    </td>
+                  ))}
+                  {hasFileField && (
+                    <td className="px-4 py-3">
+                      {item[fileFieldKey] ? (
+                        <button onClick={() => handleViewFile(item)} className="flex items-center gap-1 text-xs font-semibold" style={{ color: T.accent }}>
+                          <Paperclip size={13} /> {item[fileFieldKey].name?.slice(0, 18) || "arquivo"}
+                        </button>
+                      ) : <span style={{ color: T.muted }}>—</span>}
+                    </td>
+                  )}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 justify-end">
+                      <IconBtn title="Editar" onClick={() => { setEditing(item); setModalOpen(true); }}><Pencil size={15} /></IconBtn>
+                      <IconBtn title="Excluir" danger onClick={() => handleDelete(item)}><Trash2 size={15} /></IconBtn>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal title={editing ? `Editar ${title}` : `Novo registro — ${title}`} onClose={() => { setModalOpen(false); setEditing(null); }} wide>
+          <GenericForm
+            fields={fields}
+            initial={editing}
+            employees={employees}
+            onSubmit={handleSubmit}
+            onCancel={() => { setModalOpen(false); setEditing(null); }}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Employees module (special: needed everywhere)                       */
+/* ------------------------------------------------------------------ */
+function EmployeesModule({ employees, setEmployees, loading }) {
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
+  const [query, setQuery] = React.useState("");
+
+  const fields = [
+    { key: "nome", label: "Nome completo", required: true },
+    { key: "matricula", label: "Matrícula", required: true },
+    { key: "cpf", label: "CPF" },
+    { key: "cargo", label: "Cargo", required: true },
+    { key: "setor", label: "Setor" },
+    { key: "dataAdmissao", label: "Data de admissão", type: "date" },
+    { key: "telefone", label: "Telefone" },
+    {
+      key: "status", label: "Situação", type: "select",
+      options: ["Ativo", "Afastado", "Desligado"],
+    },
+  ];
+
+  const persist = async (next) => {
+    setEmployees(next);
+    await saveKey("employees", next);
+  };
+
+  const handleSubmit = async (form) => {
+    const id = editing?.id || uid();
+    const item = { ...form, id, status: form.status || "Ativo" };
+    const next = editing ? employees.map((e) => (e.id === editing.id ? item : e)) : [...employees, item];
+    await persist(next);
+    setModalOpen(false); setEditing(null);
+  };
+
+  const handleDelete = async (item) => {
+    if (!confirm(`Excluir o funcionário "${item.nome}"? Isso não remove registros vinculados em outros módulos.`)) return;
+    await persist(employees.filter((e) => e.id !== item.id));
+  };
+
+  const filtered = employees.filter((e) => JSON.stringify(e).toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.02em" }}>
+            CADASTRO DE FUNCIONÁRIOS
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: T.muted }}>Base central usada por todos os módulos do sistema.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.muted }} />
+            <input placeholder="Buscar..." value={query} onChange={(e) => setQuery(e.target.value)} className="pl-8 pr-3 py-2 rounded text-sm" style={inputStyle} />
+          </div>
+          <PrimaryBtn onClick={() => { setEditing(null); setModalOpen(true); }}><Plus size={16} /> Novo funcionário</PrimaryBtn>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {loading && <p style={{ color: T.muted }}>Carregando...</p>}
+        {!loading && filtered.length === 0 && (
+          <div className="col-span-full text-center py-14" style={{ color: T.muted }}>
+            <Users size={28} className="mx-auto mb-2" style={{ color: T.border }} />
+            Nenhum funcionário cadastrado ainda.
+          </div>
+        )}
+        {filtered.map((emp) => (
+          <div key={emp.id} className="rounded-lg p-4 relative" style={{ background: T.panel, border: `1px solid ${T.border}` }}>
+            <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r"
+              style={{ background: emp.status === "Ativo" ? T.ok : emp.status === "Afastado" ? T.warn : T.danger }} />
+            <div className="pl-3 flex justify-between items-start">
+              <div>
+                <p className="font-bold text-sm" style={{ color: T.text }}>{emp.nome}</p>
+                <p className="text-xs mt-0.5" style={{ color: T.muted }}>{emp.cargo}{emp.setor ? ` · ${emp.setor}` : ""}</p>
+              </div>
+              <div className="flex gap-1">
+                <IconBtn title="Editar" onClick={() => { setEditing(emp); setModalOpen(true); }}><Pencil size={14} /></IconBtn>
+                <IconBtn title="Excluir" danger onClick={() => handleDelete(emp)}><Trash2 size={14} /></IconBtn>
+              </div>
+            </div>
+            <div className="pl-3 mt-3 grid grid-cols-2 gap-2 text-xs" style={{ color: T.muted }}>
+              <div><span className="opacity-70">Matrícula</span><br /><span style={{ color: T.text }}>{emp.matricula || "—"}</span></div>
+              <div><span className="opacity-70">Admissão</span><br /><span style={{ color: T.text }}>{fmtDate(emp.dataAdmissao)}</span></div>
+              <div><span className="opacity-70">CPF</span><br /><span style={{ color: T.text }}>{emp.cpf || "—"}</span></div>
+              <div><span className="opacity-70">Telefone</span><br /><span style={{ color: T.text }}>{emp.telefone || "—"}</span></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {modalOpen && (
+        <Modal title={editing ? "Editar funcionário" : "Novo funcionário"} onClose={() => { setModalOpen(false); setEditing(null); }} wide>
+          <GenericForm fields={fields} initial={editing} employees={employees} onSubmit={handleSubmit} onCancel={() => { setModalOpen(false); setEditing(null); }} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  PGR module (risk matrix)                                           */
+/* ------------------------------------------------------------------ */
+const PROB = ["Baixa", "Média", "Alta"];
+const SEV = ["Leve", "Moderada", "Grave", "Gravíssima"];
+function riskLevel(prob, sev) {
+  const p = PROB.indexOf(prob), s = SEV.indexOf(sev);
+  if (p < 0 || s < 0) return null;
+  const score = (p + 1) * (s + 1);
+  if (score <= 2) return { label: "Baixo", color: T.ok };
+  if (score <= 5) return { label: "Médio", color: T.warn };
+  if (score <= 8) return { label: "Alto", color: T.accent };
+  return { label: "Crítico", color: T.danger };
+}
+
+function PgrModule({ employees }) {
+  const fields = [
+    { key: "setor", label: "Setor / Área", required: true },
+    { key: "funcao", label: "Função exposta", required: true },
+    {
+      key: "tipoRisco", label: "Tipo de risco", type: "select", required: true,
+      options: ["Físico", "Químico", "Biológico", "Ergonômico", "Acidente/Mecânico"],
+    },
+    { key: "perigo", label: "Perigo identificado", required: true },
+    { key: "fonteGeradora", label: "Fonte geradora" },
+    { key: "probabilidade", label: "Probabilidade", type: "select", options: PROB, required: true },
+    { key: "severidade", label: "Severidade", type: "select", options: SEV, required: true },
+    { key: "medidasExistentes", label: "Medidas de controle existentes", type: "textarea" },
+    { key: "medidasAdicionais", label: "Medidas de controle adicionais / plano de ação", type: "textarea" },
+    { key: "responsavel", label: "Responsável pela ação" },
+    { key: "prazo", label: "Prazo", type: "date" },
+    { key: "statusAcao", label: "Status", type: "select", options: ["Não iniciado", "Em andamento", "Concluído"] },
+  ];
+  const columns = [
+    { key: "setor", label: "Setor" },
+    { key: "funcao", label: "Função" },
+    { key: "tipoRisco", label: "Tipo" },
+    { key: "perigo", label: "Perigo" },
+    {
+      key: "nivel", label: "Nível de risco",
+      render: (it) => {
+        const r = riskLevel(it.probabilidade, it.severidade);
+        return r ? <Badge color={r.color}>{r.label}</Badge> : "—";
+      },
+    },
+    {
+      key: "statusAcao", label: "Status do plano",
+      render: (it) => (
+        <Badge color={it.statusAcao === "Concluído" ? T.ok : it.statusAcao === "Em andamento" ? T.warn : T.muted}>
+          {it.statusAcao || "Não iniciado"}
+        </Badge>
+      ),
+    },
+  ];
+  return (
+    <CrudModule
+      storageKey="pgr_risks"
+      title="PGR — Programa de Gerenciamento de Riscos"
+      subtitle="Inventário de riscos, matriz de probabilidade x severidade e plano de ação (NR-01)."
+      fields={fields}
+      columns={columns}
+      employees={employees}
+      emptyIcon={ShieldAlert}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Checklist / Inspeções e Auditoria                                   */
+/* ------------------------------------------------------------------ */
+function InspectionModule({ employees }) {
+  const [tab, setTab] = React.useState("execucoes");
+  const [templates, setTemplates] = React.useState([]);
+  const [loadingT, setLoadingT] = React.useState(true);
+  const [tplModal, setTplModal] = React.useState(false);
+  const [editingTpl, setEditingTpl] = React.useState(null);
+  const [itemsDraft, setItemsDraft] = React.useState([""]);
+  const [tplName, setTplName] = React.useState("");
+
+  React.useEffect(() => { (async () => { setTemplates(await loadKey("checklist_templates")); setLoadingT(false); })(); }, []);
+
+  const persistTpl = async (next) => { setTemplates(next); await saveKey("checklist_templates", next); };
+
+  const openNewTpl = () => { setEditingTpl(null); setTplName(""); setItemsDraft([""]); setTplModal(true); };
+  const openEditTpl = (t) => { setEditingTpl(t); setTplName(t.nome); setItemsDraft(t.itens.length ? t.itens : [""]); setTplModal(true); };
+
+  const saveTpl = async (e) => {
+    e.preventDefault();
+    if (!tplName.trim()) { alert("Dê um nome ao checklist."); return; }
+    const itens = itemsDraft.map((s) => s.trim()).filter(Boolean);
+    if (itens.length === 0) { alert("Adicione ao menos um item de verificação."); return; }
+    const id = editingTpl?.id || uid();
+    const tpl = { id, nome: tplName, itens };
+    const next = editingTpl ? templates.map((t) => (t.id === id ? tpl : t)) : [...templates, tpl];
+    await persistTpl(next);
+    setTplModal(false);
+  };
+
+  const deleteTpl = async (t) => {
+    if (!confirm(`Excluir o modelo "${t.nome}"?`)) return;
+    await persistTpl(templates.filter((x) => x.id !== t.id));
+  };
+
+  const columns = [
+    { key: "data", label: "Data", render: (it) => fmtDate(it.data) },
+    { key: "modelo", label: "Checklist" },
+    { key: "local", label: "Local / Setor" },
+    { key: "responsavel", label: "Responsável" },
+    {
+      key: "resultado", label: "Resultado",
+      render: (it) => {
+        const total = it.respostas ? Object.keys(it.respostas).length : 0;
+        const nc = it.respostas ? Object.values(it.respostas).filter((v) => v === "NC").length : 0;
+        if (!total) return "—";
+        return <Badge color={nc === 0 ? T.ok : T.danger}>{nc === 0 ? "Conforme" : `${nc} não conformidade(s)`}</Badge>;
+      },
+    },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.02em" }}>
+            INSPEÇÕES E AUDITORIA
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: T.muted }}>Modelos de checklist e execuções em campo.</p>
+        </div>
+        <div className="flex gap-1 rounded p-1" style={{ background: T.panel2 }}>
+          {["execucoes", "modelos"].map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className="px-3 py-1.5 rounded text-xs font-semibold uppercase"
+              style={{ background: tab === t ? T.accent : "transparent", color: tab === t ? "#1A1300" : T.muted }}>
+              {t === "execucoes" ? "Execuções" : "Modelos de checklist"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === "modelos" && (
+        <div>
+          <div className="flex justify-end mb-3">
+            <PrimaryBtn onClick={openNewTpl}><Plus size={16} /> Novo modelo</PrimaryBtn>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {loadingT && <p style={{ color: T.muted }}>Carregando...</p>}
+            {!loadingT && templates.length === 0 && (
+              <div className="col-span-full text-center py-14" style={{ color: T.muted }}>
+                <ClipboardCheck size={28} className="mx-auto mb-2" style={{ color: T.border }} />
+                Nenhum modelo de checklist criado ainda.
+              </div>
+            )}
+            {templates.map((t) => (
+              <div key={t.id} className="rounded-lg p-4" style={{ background: T.panel, border: `1px solid ${T.border}` }}>
+                <div className="flex justify-between items-start">
+                  <p className="font-bold text-sm" style={{ color: T.text }}>{t.nome}</p>
+                  <div className="flex gap-1">
+                    <IconBtn title="Editar" onClick={() => openEditTpl(t)}><Pencil size={14} /></IconBtn>
+                    <IconBtn title="Excluir" danger onClick={() => deleteTpl(t)}><Trash2 size={14} /></IconBtn>
+                  </div>
+                </div>
+                <ul className="mt-2 text-xs space-y-1" style={{ color: T.muted }}>
+                  {t.itens.slice(0, 5).map((i, idx) => <li key={idx}>• {i}</li>)}
+                  {t.itens.length > 5 && <li>+ {t.itens.length - 5} item(ns)</li>}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "execucoes" && (
+        <ExecucaoInspecao templates={templates} employees={employees} columns={columns} />
+      )}
+
+      {tplModal && (
+        <Modal title={editingTpl ? "Editar modelo" : "Novo modelo de checklist"} onClose={() => setTplModal(false)}>
+          <form onSubmit={saveTpl} className="flex flex-col gap-4">
+            <Field label="Nome do checklist" required>
+              <input className={inputCls} style={inputStyle} value={tplName} onChange={(e) => setTplName(e.target.value)} />
+            </Field>
+            <Field label="Itens de verificação" required>
+              <div className="flex flex-col gap-2">
+                {itemsDraft.map((val, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input
+                      className={inputCls} style={inputStyle} value={val}
+                      onChange={(e) => setItemsDraft((arr) => arr.map((a, i) => (i === idx ? e.target.value : a)))}
+                      placeholder={`Item ${idx + 1}`}
+                    />
+                    <IconBtn danger title="Remover" onClick={() => setItemsDraft((arr) => arr.filter((_, i) => i !== idx))}><Trash2 size={15} /></IconBtn>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setItemsDraft((arr) => [...arr, ""])} className="text-xs font-semibold self-start" style={{ color: T.accent }}>
+                  + adicionar item
+                </button>
+              </div>
+            </Field>
+            <div className="flex justify-end gap-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+              <button type="button" onClick={() => setTplModal(false)} className="px-4 py-2 rounded text-sm font-semibold" style={{ color: T.muted }}>Cancelar</button>
+              <PrimaryBtn onClick={saveTpl}>Salvar modelo</PrimaryBtn>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function ExecucaoInspecao({ templates, employees, columns }) {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [selTpl, setSelTpl] = React.useState("");
+  const [local, setLocal] = React.useState("");
+  const [responsavel, setResponsavel] = React.useState("");
+  const [data, setData] = React.useState("");
+  const [obs, setObs] = React.useState("");
+  const [respostas, setRespostas] = React.useState({});
+
+  React.useEffect(() => { (async () => { setItems(await loadKey("inspections")); setLoading(false); })(); }, []);
+
+  const persist = async (next) => { setItems(next); await saveKey("inspections", next); };
+
+  const openModal = () => {
+    setSelTpl(""); setLocal(""); setResponsavel(""); setData(""); setObs(""); setRespostas({});
+    setModalOpen(true);
+  };
+
+  const tpl = templates.find((t) => t.id === selTpl);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!selTpl || !local || !data) { alert("Preencha checklist, local e data."); return; }
+    const item = {
+      id: uid(), modelo: tpl?.nome, modeloId: selTpl, local, responsavel, data, observacoes: obs, respostas,
+    };
+    await persist([...items, item]);
+    setModalOpen(false);
+  };
+
+  const handleDelete = async (item) => {
+    if (!confirm("Excluir esta inspeção?")) return;
+    await persist(items.filter((i) => i.id !== item.id));
+  };
+
+  return (
+    <div>
+      <div className="flex justify-end mb-3">
+        <PrimaryBtn onClick={openModal}><Plus size={16} /> Nova inspeção</PrimaryBtn>
+      </div>
+      <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: T.panel2 }}>
+                {columns.map((c) => <th key={c.key} className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide" style={{ color: T.muted }}>{c.label}</th>)}
+                <th className="w-14"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && <tr><td colSpan={columns.length + 1} className="text-center py-10" style={{ color: T.muted }}>Carregando...</td></tr>}
+              {!loading && items.length === 0 && (
+                <tr><td colSpan={columns.length + 1} className="text-center py-14" style={{ color: T.muted }}>
+                  <div className="flex flex-col items-center gap-2"><ClipboardCheck size={28} style={{ color: T.border }} />Nenhuma inspeção registrada.</div>
+                </td></tr>
+              )}
+              {items.map((it, idx) => (
+                <tr key={it.id} style={{ background: idx % 2 ? "transparent" : "#ffffff05", borderTop: `1px solid ${T.border}` }}>
+                  {columns.map((c) => <td key={c.key} className="px-4 py-3" style={{ color: T.text }}>{c.render ? c.render(it) : it[c.key] ?? "—"}</td>)}
+                  <td className="px-4 py-3 text-right"><IconBtn danger title="Excluir" onClick={() => handleDelete(it)}><Trash2 size={15} /></IconBtn></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal title="Nova inspeção / auditoria" onClose={() => setModalOpen(false)} wide>
+          <form onSubmit={submit} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Checklist" required>
+                <select className={inputCls} style={inputStyle} value={selTpl} onChange={(e) => { setSelTpl(e.target.value); setRespostas({}); }}>
+                  <option value="">Selecione um modelo...</option>
+                  {templates.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                </select>
+              </Field>
+              <Field label="Data" required>
+                <input type="date" className={inputCls} style={inputStyle} value={data} onChange={(e) => setData(e.target.value)} />
+              </Field>
+              <Field label="Local / Setor" required>
+                <input className={inputCls} style={inputStyle} value={local} onChange={(e) => setLocal(e.target.value)} />
+              </Field>
+              <Field label="Responsável">
+                <input className={inputCls} style={inputStyle} value={responsavel} onChange={(e) => setResponsavel(e.target.value)} />
+              </Field>
+            </div>
+
+            {tpl && (
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase" style={{ color: T.muted }}>Itens verificados</span>
+                {tpl.itens.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-3 px-3 py-2 rounded" style={{ background: T.bg, border: `1px solid ${T.border}` }}>
+                    <span className="text-sm" style={{ color: T.text }}>{item}</span>
+                    <div className="flex gap-1 shrink-0">
+                      {["C", "NC", "NA"].map((v) => (
+                        <button type="button" key={v}
+                          onClick={() => setRespostas((r) => ({ ...r, [item]: v }))}
+                          className="px-2.5 py-1 rounded text-xs font-bold"
+                          style={{
+                            background: respostas[item] === v ? (v === "C" ? T.ok : v === "NC" ? T.danger : T.muted) : T.panel2,
+                            color: respostas[item] === v ? "#0A0A0A" : T.muted,
+                          }}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Field label="Observações">
+              <textarea className={inputCls} style={{ ...inputStyle, minHeight: 70 }} value={obs} onChange={(e) => setObs(e.target.value)} />
+            </Field>
+
+            <div className="flex justify-end gap-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+              <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded text-sm font-semibold" style={{ color: T.muted }}>Cancelar</button>
+              <PrimaryBtn onClick={submit}>Salvar inspeção</PrimaryBtn>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Dashboard                                                            */
+/* ------------------------------------------------------------------ */
+function StatCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="rounded-lg p-4 flex items-center gap-3" style={{ background: T.panel, border: `1px solid ${T.border}` }}>
+      <div className="w-10 h-10 rounded flex items-center justify-center shrink-0" style={{ background: `${color}22`, color }}>
+        <Icon size={20} />
+      </div>
+      <div>
+        <p className="text-2xl font-bold leading-none" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif" }}>{value}</p>
+        <p className="text-xs mt-1" style={{ color: T.muted }}>{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ employees, exams, trainings, epiDeliveries, pgrRisks }) {
+  const ativos = employees.filter((e) => e.status !== "Desligado").length;
+
+  const vencendoExames = exams
+    .map((e) => ({ ...e, dias: daysUntil(e.dataValidade) }))
+    .filter((e) => e.dias !== null && e.dias <= 30)
+    .sort((a, b) => a.dias - b.dias);
+
+  const vencendoTreinamentos = trainings
+    .map((t) => ({ ...t, dias: daysUntil(t.dataValidade) }))
+    .filter((t) => t.dias !== null && t.dias <= 30)
+    .sort((a, b) => a.dias - b.dias);
+
+  const vencendoEpi = epiDeliveries
+    .map((e) => ({ ...e, dias: daysUntil(e.dataValidade) }))
+    .filter((e) => e.dias !== null && e.dias <= 30)
+    .sort((a, b) => a.dias - b.dias);
+
+  const riscoCritico = pgrRisks.filter((r) => {
+    const rl = riskLevel(r.probabilidade, r.severidade);
+    return rl && (rl.label === "Crítico" || rl.label === "Alto");
+  }).length;
+
+  const empName = (id) => employees.find((e) => e.id === id)?.nome || "—";
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-1" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.02em" }}>
+        PAINEL GERAL
+      </h2>
+      <p className="text-sm mb-5" style={{ color: T.muted }}>Visão consolidada de SST.</p>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard label="Funcionários ativos" value={ativos} icon={Users} color={T.accent2} />
+        <StatCard label="Exames a vencer (30d)" value={vencendoExames.length} icon={Stethoscope} color={T.warn} />
+        <StatCard label="Treinamentos a vencer" value={vencendoTreinamentos.length} icon={GraduationCap} color={T.warn} />
+        <StatCard label="Riscos altos/críticos" value={riscoCritico} icon={ShieldAlert} color={T.danger} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <AlertList title="Exames ocupacionais" icon={Stethoscope} data={vencendoExames} render={(e) => `${empName(e.funcionarioId)} — ${e.tipo || "Exame"}`} />
+        <AlertList title="Treinamentos" icon={GraduationCap} data={vencendoTreinamentos} render={(t) => `${empName(t.funcionarioId)} — ${t.norma || "Treinamento"}`} />
+        <AlertList title="EPIs entregues" icon={HardHat} data={vencendoEpi} render={(e) => `${empName(e.funcionarioId)} — ${e.epiNome || "EPI"}`} />
+      </div>
+    </div>
+  );
+}
+
+function AlertList({ title, icon: Icon, data, render }) {
+  return (
+    <div className="rounded-lg p-4" style={{ background: T.panel, border: `1px solid ${T.border}` }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Icon size={16} style={{ color: T.accent }} />
+        <h4 className="text-sm font-bold" style={{ color: T.text }}>{title}</h4>
+      </div>
+      {data.length === 0 ? (
+        <p className="text-xs" style={{ color: T.muted }}>Nada vencendo nos próximos 30 dias.</p>
+      ) : (
+        <ul className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+          {data.slice(0, 8).map((d, idx) => {
+            const st = statusFromDays(d.dias);
+            return (
+              <li key={idx} className="flex items-center justify-between gap-2 text-xs">
+                <span style={{ color: T.text }} className="truncate">{render(d)}</span>
+                <Badge color={st.color}>{st.label}</Badge>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Guias de Encaminhamento (exames ocupacionais)                       */
+/* ------------------------------------------------------------------ */
+const EXAMES_COMUNS = [
+  "Hemograma completo", "Glicemia", "Colesterol total e frações", "Raio-X de tórax",
+  "Audiometria", "Espirometria", "Acuidade visual", "Eletrocardiograma (ECG)",
+  "Exame toxicológico", "Urina tipo I", "Avaliação clínica ocupacional", "Eletroencefalograma (EEG)",
+];
+const TIPOS_EXAME_GUIA = ["Admissional", "Periódico", "Retorno ao Trabalho", "Mudança de Função", "Demissional"];
+
+function GuiaEncaminhamentoModule({ employees }) {
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [printItem, setPrintItem] = React.useState(null);
+  const [form, setForm] = React.useState({});
+  const [selecionados, setSelecionados] = React.useState([]);
+
+  React.useEffect(() => {
+    (async () => { setItems(await loadKey("guias_encaminhamento")); setLoading(false); })();
+  }, []);
+
+  const persist = async (next) => { setItems(next); await saveKey("guias_encaminhamento", next); };
+
+  const openNew = () => {
+    setForm({ dataSolicitacao: new Date().toISOString().slice(0, 10) });
+    setSelecionados([]);
+    setModalOpen(true);
+  };
+
+  const toggleExame = (nome) => {
+    setSelecionados((s) => (s.includes(nome) ? s.filter((x) => x !== nome) : [...s, nome]));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.funcionarioId || !form.tipoExameGuia || !form.dataSolicitacao) {
+      alert("Preencha funcionário, tipo de exame e data da solicitação.");
+      return;
+    }
+    if (selecionados.length === 0 && !form.examesOutros) {
+      alert("Selecione ao menos um exame, ou informe em \"Outros exames\".");
+      return;
+    }
+    const item = { ...form, id: uid(), exames: selecionados };
+    await persist([...items, item]);
+    setModalOpen(false);
+  };
+
+  const handleDelete = async (item) => {
+    if (!confirm("Excluir esta guia de encaminhamento?")) return;
+    await persist(items.filter((i) => i.id !== item.id));
+  };
+
+  const empName = (id) => employees.find((e) => e.id === id)?.nome || "—";
+  const empOf = (id) => employees.find((e) => e.id === id);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+        <p className="text-sm" style={{ color: T.muted }}>
+          Emita a guia, selecione os exames necessários e imprima ou salve em PDF para entregar ao funcionário/clínica.
+        </p>
+        <PrimaryBtn onClick={openNew}><Plus size={16} /> Nova guia</PrimaryBtn>
+      </div>
+
+      <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: T.panel2 }}>
+                <th className="text-left px-4 py-3 text-xs uppercase font-semibold" style={{ color: T.muted }}>Funcionário</th>
+                <th className="text-left px-4 py-3 text-xs uppercase font-semibold" style={{ color: T.muted }}>Tipo de exame</th>
+                <th className="text-left px-4 py-3 text-xs uppercase font-semibold" style={{ color: T.muted }}>Data</th>
+                <th className="text-left px-4 py-3 text-xs uppercase font-semibold" style={{ color: T.muted }}>Exames solicitados</th>
+                <th className="w-24"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={5} className="text-center py-10" style={{ color: T.muted }}>Carregando...</td></tr>
+              )}
+              {!loading && items.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-14" style={{ color: T.muted }}>
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText size={28} style={{ color: T.border }} />
+                    Nenhuma guia emitida ainda.
+                  </div>
+                </td></tr>
+              )}
+              {items.map((it, idx) => (
+                <tr key={it.id} style={{ background: idx % 2 ? "transparent" : "#ffffff05", borderTop: `1px solid ${T.border}` }}>
+                  <td className="px-4 py-3" style={{ color: T.text }}>{empName(it.funcionarioId)}</td>
+                  <td className="px-4 py-3" style={{ color: T.text }}>{it.tipoExameGuia}</td>
+                  <td className="px-4 py-3" style={{ color: T.text }}>{fmtDate(it.dataSolicitacao)}</td>
+                  <td className="px-4 py-3" style={{ color: T.text }}>
+                    {(it.exames || []).length} exame(s){it.examesOutros ? " + outros" : ""}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 justify-end">
+                      <IconBtn title="Ver / Imprimir" onClick={() => setPrintItem(it)}><FileText size={15} /></IconBtn>
+                      <IconBtn title="Excluir" danger onClick={() => handleDelete(it)}><Trash2 size={15} /></IconBtn>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {modalOpen && (
+        <Modal title="Nova guia de encaminhamento" onClose={() => setModalOpen(false)} wide>
+          <form onSubmit={submit} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Funcionário" required>
+                <select className={inputCls} style={inputStyle} value={form.funcionarioId || ""} onChange={(e) => setForm((f) => ({ ...f, funcionarioId: e.target.value }))}>
+                  <option value="">Selecione...</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.nome}{emp.matricula ? ` (${emp.matricula})` : ""}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Tipo de exame" required>
+                <select className={inputCls} style={inputStyle} value={form.tipoExameGuia || ""} onChange={(e) => setForm((f) => ({ ...f, tipoExameGuia: e.target.value }))}>
+                  <option value="">Selecione...</option>
+                  {TIPOS_EXAME_GUIA.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </Field>
+              <Field label="Data da solicitação" required>
+                <input type="date" className={inputCls} style={inputStyle} value={form.dataSolicitacao || ""} onChange={(e) => setForm((f) => ({ ...f, dataSolicitacao: e.target.value }))} />
+              </Field>
+              <Field label="Médico / serviço solicitante">
+                <input className={inputCls} style={inputStyle} value={form.medicoSolicitante || ""} onChange={(e) => setForm((f) => ({ ...f, medicoSolicitante: e.target.value }))} />
+              </Field>
+              <Field label="Clínica / laboratório de destino">
+                <input className={inputCls} style={inputStyle} value={form.clinicaDestino || ""} onChange={(e) => setForm((f) => ({ ...f, clinicaDestino: e.target.value }))} />
+              </Field>
+            </div>
+
+            <Field label="Exames solicitados" required>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {EXAMES_COMUNS.map((ex) => {
+                  const checked = selecionados.includes(ex);
+                  return (
+                    <label
+                      key={ex}
+                      className="flex items-center gap-2 text-xs px-2.5 py-2 rounded cursor-pointer"
+                      style={{ background: checked ? `${T.accent}22` : T.bg, border: `1px solid ${checked ? T.accent : T.border}`, color: T.text }}
+                    >
+                      <input type="checkbox" checked={checked} onChange={() => toggleExame(ex)} />
+                      {ex}
+                    </label>
+                  );
+                })}
+              </div>
+            </Field>
+
+            <Field label="Outros exames (opcional)">
+              <input className={inputCls} style={inputStyle} placeholder="Ex.: Ressonância magnética, exame específico..." value={form.examesOutros || ""} onChange={(e) => setForm((f) => ({ ...f, examesOutros: e.target.value }))} />
+            </Field>
+
+            <Field label="Observações">
+              <textarea className={inputCls} style={{ ...inputStyle, minHeight: 70 }} value={form.observacoes || ""} onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))} />
+            </Field>
+
+            <div className="flex justify-end gap-2 pt-2" style={{ borderTop: `1px solid ${T.border}` }}>
+              <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded text-sm font-semibold" style={{ color: T.muted }}>Cancelar</button>
+              <PrimaryBtn onClick={submit}>Salvar guia</PrimaryBtn>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {printItem && (
+        <PrintGuiaModal item={printItem} employee={empOf(printItem.funcionarioId)} onClose={() => setPrintItem(null)} />
+      )}
+    </div>
+  );
+}
+
+function PrintGuiaModal({ item, employee, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "#000000aa" }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-lg max-h-[90vh] overflow-y-auto" style={{ background: "#fff" }}>
+        <div className="flex items-center justify-between px-5 py-3 no-print" style={{ borderBottom: "1px solid #ddd" }}>
+          <span className="text-sm font-semibold" style={{ color: "#333" }}>Pré-visualização da guia</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.print()} className="px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5" style={{ background: T.accent, color: "#1A1300" }}>
+              <Download size={13} /> Imprimir / Salvar PDF
+            </button>
+            <button onClick={onClose} className="p-1.5"><X size={18} color="#333" /></button>
+          </div>
+        </div>
+
+        <div id="guia-print-area" className="p-8" style={{ color: "#1a1a1a" }}>
+          <div className="text-center mb-6">
+            <p className="text-xs uppercase tracking-widest" style={{ color: "#666" }}>Saúde e Segurança do Trabalho</p>
+            <h2 className="text-xl font-bold mt-1">GUIA DE ENCAMINHAMENTO PARA EXAME OCUPACIONAL</h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-sm mb-5 pb-4" style={{ borderBottom: "1px solid #ccc" }}>
+            <p><strong>Funcionário:</strong> {employee?.nome || "—"}</p>
+            <p><strong>Matrícula:</strong> {employee?.matricula || "—"}</p>
+            <p><strong>Cargo:</strong> {employee?.cargo || "—"}</p>
+            <p><strong>Setor:</strong> {employee?.setor || "—"}</p>
+            <p><strong>Tipo de exame:</strong> {item.tipoExameGuia}</p>
+            <p><strong>Data da solicitação:</strong> {fmtDate(item.dataSolicitacao)}</p>
+            <p><strong>Médico solicitante:</strong> {item.medicoSolicitante || "—"}</p>
+            <p><strong>Clínica de destino:</strong> {item.clinicaDestino || "—"}</p>
+          </div>
+
+          <p className="text-sm font-semibold mb-2">Exames solicitados:</p>
+          <ul className="text-sm mb-5 flex flex-col gap-1.5">
+            {(item.exames || []).map((ex) => (
+              <li key={ex} className="flex items-center gap-2">
+                <span style={{ display: "inline-block", width: 14, height: 14, border: "1.5px solid #333" }} />
+                {ex}
+              </li>
+            ))}
+            {item.examesOutros && (
+              <li className="flex items-center gap-2">
+                <span style={{ display: "inline-block", width: 14, height: 14, border: "1.5px solid #333" }} />
+                {item.examesOutros}
+              </li>
+            )}
+          </ul>
+
+          {item.observacoes && (
+            <div className="text-sm mb-6">
+              <p className="font-semibold mb-1">Observações:</p>
+              <p>{item.observacoes}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-8 mt-14 text-sm text-center">
+            <div style={{ borderTop: "1px solid #333", paddingTop: 6 }}>Assinatura do responsável / SESMT</div>
+            <div style={{ borderTop: "1px solid #333", paddingTop: 6 }}>Carimbo da clínica / médico</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  App shell                                                            */
+/* ------------------------------------------------------------------ */
+const NAV = [
+  { key: "dashboard", label: "Painel geral", icon: LayoutDashboard },
+  { key: "funcionarios", label: "Funcionários", icon: Users },
+  { key: "epi", label: "Controle de EPI", icon: HardHat },
+  { key: "inspecoes", label: "Inspeção / Auditoria", icon: ClipboardCheck },
+  { key: "treinamentos", label: "Treinamentos", icon: GraduationCap },
+  { key: "pgr", label: "PGR", icon: ShieldAlert },
+  { key: "exames", label: "Exames ocupacionais", icon: Stethoscope },
+  { key: "esocial", label: "eSocial", icon: FileText },
+];
+
+function App() {
+  const [active, setActive] = React.useState("dashboard");
+  const [examTab, setExamTab] = React.useState("realizados");
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [employees, setEmployees] = React.useState([]);
+  const [loadingEmp, setLoadingEmp] = React.useState(true);
+
+  // extra state solely for the dashboard summary
+  const [exams, setExams] = React.useState([]);
+  const [trainings, setTrainings] = React.useState([]);
+  const [epiDeliveries, setEpiDeliveries] = React.useState([]);
+  const [pgrRisks, setPgrRisks] = React.useState([]);
+
+  React.useEffect(() => {
+    (async () => {
+      setEmployees(await loadKey("employees"));
+      setLoadingEmp(false);
+      setExams(await loadKey("exams"));
+      setTrainings(await loadKey("trainings"));
+      setEpiDeliveries(await loadKey("epi_deliveries"));
+      setPgrRisks(await loadKey("pgr_risks"));
+    })();
+  }, []);
+
+  // refresh dashboard-relevant data whenever user navigates back to dashboard
+  React.useEffect(() => {
+    if (active === "dashboard") {
+      (async () => {
+        setExams(await loadKey("exams"));
+        setTrainings(await loadKey("trainings"));
+        setEpiDeliveries(await loadKey("epi_deliveries"));
+        setPgrRisks(await loadKey("pgr_risks"));
+      })();
+    }
+  }, [active]);
+
+  const epiCatalogFields = [
+    { key: "nome", label: "Nome do EPI", required: true },
+    { key: "ca", label: "Número do CA", required: true },
+    { key: "validadeDias", label: "Vida útil (dias)", type: "number" },
+  ];
+  const epiCatalogColumns = [
+    { key: "nome", label: "EPI" },
+    { key: "ca", label: "CA" },
+    { key: "validadeDias", label: "Vida útil (dias)" },
+  ];
+
+  const epiDeliveryFields = [
+    { key: "funcionarioId", label: "Funcionário", type: "employee", required: true },
+    { key: "epiNome", label: "Nome do EPI", required: true },
+    { key: "ca", label: "Número do CA" },
+    { key: "dataEntrega", label: "Data de entrega", type: "date", required: true },
+    { key: "dataValidade", label: "Data de troca/validade", type: "date" },
+    { key: "quantidade", label: "Quantidade", type: "number" },
+  ];
+  const epiDeliveryColumns = [
+    { key: "funcionarioId", label: "Funcionário", render: (it, empName) => empName(it.funcionarioId) },
+    { key: "epiNome", label: "EPI" },
+    { key: "ca", label: "CA" },
+    { key: "dataEntrega", label: "Entrega", render: (it) => fmtDate(it.dataEntrega) },
+    {
+      key: "dataValidade", label: "Validade",
+      render: (it) => {
+        const d = daysUntil(it.dataValidade);
+        const st = statusFromDays(d);
+        return it.dataValidade ? <Badge color={st.color}>{fmtDate(it.dataValidade)} · {st.label}</Badge> : "—";
+      },
+    },
+  ];
+
+  const trainingFields = [
+    { key: "funcionarioId", label: "Funcionário", type: "employee", required: true },
+    {
+      key: "norma", label: "Treinamento / Norma", type: "select", required: true,
+      options: ["NR-01 - GRO", "NR-05 - CIPA", "NR-06 - EPI", "NR-10 - Elétrica", "NR-11 - Transporte/Movimentação",
+        "NR-12 - Máquinas e Equipamentos", "NR-17 - Ergonomia", "NR-18 - Construção Civil", "NR-20 - Inflamáveis",
+        "NR-23 - Combate a Incêndio", "NR-33 - Espaços Confinados", "NR-35 - Trabalho em Altura", "Brigada de Incêndio", "Outro"],
+    },
+    { key: "cargaHoraria", label: "Carga horária (h)", type: "number" },
+    { key: "dataRealizacao", label: "Data de realização", type: "date", required: true },
+    { key: "dataValidade", label: "Validade", type: "date" },
+    { key: "instrutor", label: "Instrutor / Empresa" },
+    { key: "certificado", label: "Certificado (PDF/imagem)", type: "file" },
+  ];
+  const trainingColumns = [
+    { key: "funcionarioId", label: "Funcionário", render: (it, empName) => empName(it.funcionarioId) },
+    { key: "norma", label: "Treinamento" },
+    { key: "dataRealizacao", label: "Realizado em", render: (it) => fmtDate(it.dataRealizacao) },
+    {
+      key: "dataValidade", label: "Validade",
+      render: (it) => {
+        const d = daysUntil(it.dataValidade);
+        const st = statusFromDays(d);
+        return it.dataValidade ? <Badge color={st.color}>{fmtDate(it.dataValidade)} · {st.label}</Badge> : "—";
+      },
+    },
+  ];
+
+  const examFields = [
+    { key: "funcionarioId", label: "Funcionário", type: "employee", required: true },
+    {
+      key: "tipo", label: "Tipo de exame", type: "select", required: true,
+      options: ["Admissional", "Periódico", "Retorno ao Trabalho", "Mudança de Função", "Demissional"],
+    },
+    { key: "dataExame", label: "Data do exame", type: "date", required: true },
+    { key: "resultado", label: "Resultado (ASO)", type: "select", options: ["Apto", "Inapto"] },
+    { key: "dataValidade", label: "Válido até (próximo exame)", type: "date" },
+    { key: "medico", label: "Médico / Clínica" },
+    { key: "arquivoAso", label: "Upload do ASO (PDF/imagem)", type: "file" },
+  ];
+  const examColumns = [
+    { key: "funcionarioId", label: "Funcionário", render: (it, empName) => empName(it.funcionarioId) },
+    { key: "tipo", label: "Tipo" },
+    { key: "dataExame", label: "Data", render: (it) => fmtDate(it.dataExame) },
+    {
+      key: "resultado", label: "Resultado",
+      render: (it) => it.resultado ? <Badge color={it.resultado === "Apto" ? T.ok : T.danger}>{it.resultado}</Badge> : "—",
+    },
+    {
+      key: "dataValidade", label: "Próximo exame",
+      render: (it) => {
+        const d = daysUntil(it.dataValidade);
+        const st = statusFromDays(d);
+        return it.dataValidade ? <Badge color={st.color}>{fmtDate(it.dataValidade)} · {st.label}</Badge> : "—";
+      },
+    },
+  ];
+
+  const esocialFields = [
+    {
+      key: "evento", label: "Evento eSocial", type: "select", required: true,
+      options: ["S-2200 - Admissão", "S-2205 - Alteração Cadastral", "S-2206 - Alteração Contratual",
+        "S-2210 - CAT (Acidente de Trabalho)", "S-2220 - Monitoramento da Saúde", "S-2240 - Condições Ambientais", "S-2299 - Desligamento"],
+    },
+    { key: "funcionarioId", label: "Funcionário", type: "employee" },
+    { key: "dataEvento", label: "Data do evento", type: "date", required: true },
+    { key: "dataEnvio", label: "Data de envio", type: "date" },
+    { key: "protocolo", label: "Nº do recibo / protocolo" },
+    { key: "status", label: "Status", type: "select", options: ["Pendente", "Enviado", "Processado", "Rejeitado"], required: true },
+    { key: "observacoes", label: "Observações", type: "textarea" },
+  ];
+  const esocialColumns = [
+    { key: "evento", label: "Evento" },
+    { key: "funcionarioId", label: "Funcionário", render: (it, empName) => (it.funcionarioId ? empName(it.funcionarioId) : "—") },
+    { key: "dataEvento", label: "Data do evento", render: (it) => fmtDate(it.dataEvento) },
+    { key: "protocolo", label: "Protocolo" },
+    {
+      key: "status", label: "Status",
+      render: (it) => {
+        const c = it.status === "Processado" ? T.ok : it.status === "Rejeitado" ? T.danger : it.status === "Enviado" ? T.accent2 : T.muted;
+        return <Badge color={c}>{it.status || "Pendente"}</Badge>;
+      },
+    },
+  ];
+
+  return (
+    <div className="min-h-screen w-full flex" style={{ background: T.bg, fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
+        select { color-scheme: dark; }
+        input::placeholder, textarea::placeholder { color: ${T.muted}; opacity: 0.7; }
+        @media print {
+          body * { visibility: hidden; }
+          #guia-print-area, #guia-print-area * { visibility: visible; }
+          #guia-print-area { position: fixed; top: 0; left: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:static z-40 h-full lg:h-auto w-64 shrink-0 flex flex-col transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        style={{ background: T.panel, borderRight: `1px solid ${T.border}` }}
+      >
+        <div className="px-5 py-5" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-7 h-6 rounded-sm" style={{
+              backgroundImage: `repeating-linear-gradient(45deg, ${T.accent2} 0 8px, #14181C 8px 16px)`,
+            }} />
+            <span className="font-extrabold text-lg tracking-wide" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif" }}>
+              CENTRAL SST
+            </span>
+          </div>
+          <p className="text-[11px]" style={{ color: T.muted }}>Saúde e Segurança do Trabalho</p>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-1">
+          {NAV.map((n) => {
+            const Icon = n.icon;
+            const isActive = active === n.key;
+            return (
+              <button
+                key={n.key}
+                onClick={() => { setActive(n.key); setSidebarOpen(false); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded text-sm font-semibold transition-colors text-left"
+                style={{
+                  background: isActive ? `${T.accent}1A` : "transparent",
+                  color: isActive ? T.accent : T.muted,
+                  borderLeft: isActive ? `3px solid ${T.accent}` : "3px solid transparent",
+                }}
+              >
+                <Icon size={17} /> {n.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="px-4 py-3 text-[11px]" style={{ color: T.muted, borderTop: `1px solid ${T.border}` }}>
+          Dados salvos automaticamente.
+        </div>
+      </aside>
+
+      {sidebarOpen && <div className="fixed inset-0 z-30 lg:hidden" style={{ background: "#000000aa" }} onClick={() => setSidebarOpen(false)} />}
+
+      {/* Main */}
+      <main className="flex-1 min-w-0">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${T.border}`, background: T.panel }}>
+          <button onClick={() => setSidebarOpen(true)} style={{ color: T.text }}><Menu size={22} /></button>
+          <span className="font-bold" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif" }}>CENTRAL SST</span>
+        </div>
+        <div className="p-4 sm:p-8 max-w-6xl mx-auto">
+          {active === "dashboard" && (
+            <Dashboard employees={employees} exams={exams} trainings={trainings} epiDeliveries={epiDeliveries} pgrRisks={pgrRisks} />
+          )}
+          {active === "funcionarios" && (
+            <EmployeesModule employees={employees} setEmployees={setEmployees} loading={loadingEmp} />
+          )}
+          {active === "epi" && (
+            <div className="flex flex-col gap-10">
+              <CrudModule storageKey="epis" title="Catálogo de EPIs" subtitle="Cadastro dos equipamentos disponíveis, com número do CA." fields={epiCatalogFields} columns={epiCatalogColumns} employees={employees} emptyIcon={HardHat} />
+              <CrudModule storageKey="epi_deliveries" title="Entregas de EPI" subtitle="Controle de entrega por funcionário e datas de troca/validade." fields={epiDeliveryFields} columns={epiDeliveryColumns} employees={employees} emptyIcon={HardHat} />
+            </div>
+          )}
+          {active === "inspecoes" && <InspectionModule employees={employees} />}
+          {active === "treinamentos" && (
+            <CrudModule storageKey="trainings" title="Controle de Treinamentos" subtitle="Treinamentos normativos por funcionário, com certificado anexado." fields={trainingFields} columns={trainingColumns} employees={employees} emptyIcon={GraduationCap} />
+          )}
+          {active === "pgr" && <PgrModule employees={employees} />}
+          {active === "exames" && (
+            <div>
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                <div>
+                  <h2 className="text-2xl font-bold" style={{ color: T.text, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.02em" }}>
+                    CONTROLE MÉDICO
+                  </h2>
+                  <p className="text-sm mt-0.5" style={{ color: T.muted }}>Exames ocupacionais e guias de encaminhamento.</p>
+                </div>
+                <div className="flex gap-1 rounded p-1" style={{ background: T.panel2 }}>
+                  {["realizados", "guias"].map((t) => (
+                    <button key={t} onClick={() => setExamTab(t)}
+                      className="px-3 py-1.5 rounded text-xs font-semibold uppercase"
+                      style={{ background: examTab === t ? T.accent : "transparent", color: examTab === t ? "#1A1300" : T.muted }}>
+                      {t === "realizados" ? "Exames realizados" : "Guias de encaminhamento"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {examTab === "realizados" && (
+                <CrudModule storageKey="exams" title="Exames realizados" subtitle="ASOs por funcionário, com upload do arquivo do exame." fields={examFields} columns={examColumns} employees={employees} emptyIcon={Stethoscope} />
+              )}
+              {examTab === "guias" && <GuiaEncaminhamentoModule employees={employees} />}
+            </div>
+          )}
+          {active === "esocial" && (
+            <CrudModule storageKey="esocial_events" title="Gestão do eSocial" subtitle="Controle de eventos de SST enviados ao eSocial (S-2200, S-2210, S-2220, S-2240 etc.)." fields={esocialFields} columns={esocialColumns} employees={employees} emptyIcon={FileText} />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
